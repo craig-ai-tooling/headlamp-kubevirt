@@ -423,6 +423,8 @@ export default function QuickCreateVM(props: {
             <TextField
               select
               label="Network"
+              SelectProps={{ displayEmpty: true }}
+              InputLabelProps={{ shrink: true }}
               value={s.network}
               onChange={e => set({ network: e.target.value })}
             >

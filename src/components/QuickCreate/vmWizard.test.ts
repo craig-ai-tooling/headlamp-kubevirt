@@ -122,6 +122,33 @@ describe('quick create', () => {
     expect(vm.spec.dataVolumeTemplates[1].metadata.name).toBe('web-01-data-1');
     expect(vm.spec.template.spec.networks[0]).toEqual({ name: 'default', pod: {} });
   });
+  it('honours the network choice on a template', () => {
+    const pod = buildVM(
+      base({ source: { kind: 'template', template }, size: 'template', network: '' })
+    )!;
+    expect(pod.spec.template.spec.networks).toEqual([{ name: 'default', pod: {} }]);
+    expect(pod.spec.template.spec.domain.devices.interfaces).toEqual([
+      { name: 'default', masquerade: {}, model: 'virtio' },
+    ]);
+    const other = buildVM(
+      base({ source: { kind: 'template', template }, size: 'template', network: 'lab/vlan30' })
+    )!;
+    expect(other.spec.template.spec.networks[0].multus.networkName).toBe('lab/vlan30');
+  });
+  it('puts extra disks on the chosen clone class', () => {
+    const vm = buildVM(
+      base({
+        source: { kind: 'image', image: { name: 'x', namespace: 'images' } },
+        cloneMode: 'full',
+        advanced: { userData: '', instancetype: '', nodeName: '', extraDisksGi: [5] },
+      })
+    )!;
+    expect(
+      vm.spec.dataVolumeTemplates.map(
+        (d: { spec: { storage: { storageClassName: string } } }) => d.spec.storage.storageClassName
+      )
+    ).toEqual([STORAGE_CLASS.full, STORAGE_CLASS.full]);
+  });
   it('explains what is missing', () => {
     expect(problems(initialState())).toEqual(
       expect.arrayContaining(['Pick a template or an OS image.'])

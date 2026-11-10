@@ -195,6 +195,20 @@ function fromTemplate(s: WizardState, t: Obj): Obj {
       storageClassName: STORAGE_CLASS[s.cloneMode],
     };
   }
+  const spec = ((vm.spec.template = vm.spec.template || {}).spec = vm.spec.template.spec || {});
+  const devices = ((spec.domain = spec.domain || {}).devices = spec.domain.devices || {});
+  if (!s.network) {
+    spec.networks = [{ name: 'default', pod: {} }];
+    devices.interfaces = [{ name: 'default', masquerade: {}, model: 'virtio' }];
+  } else {
+    const multus = (spec.networks || []).find((n: Obj) => n.multus);
+    if (multus) {
+      multus.multus.networkName = s.network;
+    } else {
+      spec.networks = [{ name: nadName(s.network), multus: { networkName: s.network } }];
+      devices.interfaces = [{ name: nadName(s.network), bridge: {}, model: 'virtio' }];
+    }
+  }
   const first = vm.spec.dataVolumeTemplates?.[0];
   if (first) {
     first.spec.storage.resources = { requests: { storage: `${s.diskGi}Gi` } };
@@ -246,7 +260,7 @@ function applyAdvanced(vm: Obj, s: WizardState) {
           accessModes: ['ReadWriteMany'],
           volumeMode: 'Block',
           resources: { requests: { storage: `${size}Gi` } },
-          storageClassName: STORAGE_CLASS.linked,
+          storageClassName: STORAGE_CLASS[s.cloneMode],
         },
       },
     });
