@@ -4,6 +4,7 @@ import { Box, Card, CardContent, Chip, Grid, IconButton, Tooltip, Typography } f
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { NADAddress, NADConfig, NADRange, NADRoute } from '../../types';
+import { parseNADConfig } from '../../utils/nadConfig';
 import CreateResourceDialog from '../common/CreateResourceDialog';
 import NADForm from './NADForm';
 import NetworkAttachmentDefinition from './NetworkAttachmentDefinition';
@@ -54,10 +55,7 @@ export default function NADDetails() {
 
   if (!nad) return null;
 
-  let config: NADConfig = {};
-  try {
-    config = JSON.parse(nad.getConfig());
-  } catch {}
+  const config: NADConfig = parseNADConfig(nad.getConfig());
 
   const cniType = config.type || 'unknown';
   const ipam = config.ipam || {};

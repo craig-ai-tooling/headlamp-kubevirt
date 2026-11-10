@@ -1,5 +1,6 @@
 import { KubeObject } from '@kinvolk/headlamp-plugin/lib/K8s/cluster';
 import { NADConfig } from '../../types';
+import { parseNADConfig } from '../../utils/nadConfig';
 
 class NetworkAttachmentDefinition extends KubeObject {
   private _parsedConfig: NADConfig | null = null;
@@ -14,11 +15,7 @@ class NetworkAttachmentDefinition extends KubeObject {
 
   getParsedConfig(): NADConfig {
     if (this._parsedConfig === null) {
-      try {
-        this._parsedConfig = JSON.parse(this.getConfig());
-      } catch (e) {
-        this._parsedConfig = {};
-      }
+      this._parsedConfig = parseNADConfig(this.getConfig());
     }
     return this._parsedConfig;
   }
