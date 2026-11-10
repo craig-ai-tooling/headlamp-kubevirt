@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { ChartTooltipProps, VMIData } from '../../types';
+import { formatBytesPerSecond } from '../../utils/formatBytes';
 import { useMetricsEndpoint } from '../../utils/metricsEndpoint';
 import MetricsEndpointConfig from '../common/MetricsEndpointConfig';
 import VirtualMachine from './VirtualMachine';
@@ -172,8 +173,8 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
         }
 
         // Fetch Network time series
-        const networkRxQuery = `sum(rate(kubevirt_vmi_network_receive_bytes_total{name="${vmName}",namespace="${namespace}"}[5m])) / 1024`;
-        const networkTxQuery = `sum(rate(kubevirt_vmi_network_transmit_bytes_total{name="${vmName}",namespace="${namespace}"}[5m])) / 1024`;
+        const networkRxQuery = `sum(rate(kubevirt_vmi_network_receive_bytes_total{name="${vmName}",namespace="${namespace}"}[5m]))`;
+        const networkTxQuery = `sum(rate(kubevirt_vmi_network_transmit_bytes_total{name="${vmName}",namespace="${namespace}"}[5m]))`;
 
         const [rxResp, txResp] = await Promise.all([
           metricsEndpoint
@@ -210,8 +211,8 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
         }
 
         // Fetch Storage time series
-        const storageReadQuery = `sum(rate(kubevirt_vmi_storage_read_traffic_bytes_total{name="${vmName}",namespace="${namespace}"}[5m])) / 1024`;
-        const storageWriteQuery = `sum(rate(kubevirt_vmi_storage_write_traffic_bytes_total{name="${vmName}",namespace="${namespace}"}[5m])) / 1024`;
+        const storageReadQuery = `sum(rate(kubevirt_vmi_storage_read_traffic_bytes_total{name="${vmName}",namespace="${namespace}"}[5m]))`;
+        const storageWriteQuery = `sum(rate(kubevirt_vmi_storage_write_traffic_bytes_total{name="${vmName}",namespace="${namespace}"}[5m]))`;
 
         const [readResp, writeResp] = await Promise.all([
           metricsEndpoint
@@ -266,8 +267,13 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
     );
   }
 
-  // Custom tooltip formatter to round to 2 decimals
-  const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
+  // Custom tooltip formatter
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+    valueFormatter,
+  }: ChartTooltipProps & { valueFormatter?: (value: number) => string }) => {
     if (active && payload && payload.length) {
       return (
         <Box sx={{ bgcolor: 'background.paper', p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
@@ -276,7 +282,10 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
           </Typography>
           {payload.map((entry: ChartTooltipProps['payload'][number], index: number) => (
             <Typography key={index} variant="caption" display="block" sx={{ color: entry.color }}>
-              {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
+              {entry.name}:{' '}
+              {typeof entry.value === 'number'
+                ? valueFormatter?.(entry.value) ?? entry.value.toFixed(2)
+                : entry.value}
             </Typography>
           ))}
         </Box>
@@ -414,8 +423,8 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
             </Typography>
             {networkCurrent ? (
               <Typography variant="body2" color="text.secondary" mb={2}>
-                Current: ↓ {networkCurrent.rx.toFixed(1)} KB/s | ↑ {networkCurrent.tx.toFixed(1)}{' '}
-                KB/s
+                Current: ↓ {formatBytesPerSecond(networkCurrent.rx)} | ↑{' '}
+                {formatBytesPerSecond(networkCurrent.tx)}
               </Typography>
             ) : (
               <Typography variant="body2" color="text.secondary" mb={2}>
@@ -429,9 +438,10 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
                   <XAxis dataKey="time" tick={{ fontSize: 12 }} />
                   <YAxis
                     tick={{ fontSize: 12 }}
-                    label={{ value: 'KB/s', angle: -90, position: 'insideLeft' }}
+                    tickFormatter={formatBytesPerSecond}
+                    label={{ value: 'per second', angle: -90, position: 'insideLeft' }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip valueFormatter={formatBytesPerSecond} />} />
                   <Legend />
                   <Line
                     type="monotone"
@@ -467,8 +477,8 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
             </Typography>
             {storageCurrent ? (
               <Typography variant="body2" color="text.secondary" mb={2}>
-                Current: R {storageCurrent.read.toFixed(1)} KB/s | W{' '}
-                {storageCurrent.write.toFixed(1)} KB/s
+                Current: R {formatBytesPerSecond(storageCurrent.read)} | W{' '}
+                {formatBytesPerSecond(storageCurrent.write)}
               </Typography>
             ) : (
               <Typography variant="body2" color="text.secondary" mb={2}>
@@ -482,9 +492,10 @@ export default function VMMetrics({ vmName, namespace, vmiData, vmItem }: Metric
                   <XAxis dataKey="time" tick={{ fontSize: 12 }} />
                   <YAxis
                     tick={{ fontSize: 12 }}
-                    label={{ value: 'KB/s', angle: -90, position: 'insideLeft' }}
+                    tickFormatter={formatBytesPerSecond}
+                    label={{ value: 'per second', angle: -90, position: 'insideLeft' }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip valueFormatter={formatBytesPerSecond} />} />
                   <Legend />
                   <Line
                     type="monotone"

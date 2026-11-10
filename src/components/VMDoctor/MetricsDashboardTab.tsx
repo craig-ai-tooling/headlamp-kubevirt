@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import { ChartTooltipProps, VMIData } from '../../types';
+import { formatBytesPerSecond } from '../../utils/formatBytes';
 import { useMetricsEndpoint } from '../../utils/metricsEndpoint';
 import { sanitizePromQL } from '../../utils/sanitize';
 import VirtualMachine from '../VirtualMachines/VirtualMachine';
@@ -37,7 +38,12 @@ interface TimeSeriesPoint {
   [key: string]: string | number;
 }
 
-const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  valueFormatter,
+}: ChartTooltipProps & { valueFormatter?: (value: number) => string }) => {
   if (active && payload && payload.length) {
     return (
       <Box sx={{ bgcolor: 'background.paper', p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
@@ -46,7 +52,10 @@ const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
         </Typography>
         {payload.map((entry: ChartTooltipProps['payload'][number], idx: number) => (
           <Typography key={idx} variant="caption" display="block" sx={{ color: entry.color }}>
-            {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
+            {entry.name}:{' '}
+            {typeof entry.value === 'number'
+              ? valueFormatter?.(entry.value) ?? entry.value.toFixed(2)
+              : entry.value}
           </Typography>
         ))}
       </Box>
@@ -156,16 +165,16 @@ export default function MetricsDashboardTab({
             `kubevirt_vmi_memory_usable_bytes{name="${safeVmName}",namespace="${safeNs}"} / (1024*1024*1024)`
           ),
           queryRange(
-            `sum(rate(kubevirt_vmi_network_receive_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m])) / 1024`
+            `sum(rate(kubevirt_vmi_network_receive_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
           ),
           queryRange(
-            `sum(rate(kubevirt_vmi_network_transmit_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m])) / 1024`
+            `sum(rate(kubevirt_vmi_network_transmit_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
           ),
           queryRange(
-            `sum(rate(kubevirt_vmi_storage_read_traffic_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m])) / 1024`
+            `sum(rate(kubevirt_vmi_storage_read_traffic_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
           ),
           queryRange(
-            `sum(rate(kubevirt_vmi_storage_write_traffic_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m])) / 1024`
+            `sum(rate(kubevirt_vmi_storage_write_traffic_bytes_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
           ),
           queryRange(
             `sum(rate(kubevirt_vmi_storage_iops_read_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
@@ -174,10 +183,10 @@ export default function MetricsDashboardTab({
             `sum(rate(kubevirt_vmi_storage_iops_write_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
           ),
           queryRange(
-            `rate(kubevirt_vmi_memory_swap_in_traffic_bytes{name="${safeVmName}",namespace="${safeNs}"}[5m]) / 1024`
+            `rate(kubevirt_vmi_memory_swap_in_traffic_bytes{name="${safeVmName}",namespace="${safeNs}"}[5m])`
           ),
           queryRange(
-            `rate(kubevirt_vmi_memory_swap_out_traffic_bytes{name="${safeVmName}",namespace="${safeNs}"}[5m]) / 1024`
+            `rate(kubevirt_vmi_memory_swap_out_traffic_bytes{name="${safeVmName}",namespace="${safeNs}"}[5m])`
           ),
           queryRange(
             `sum(rate(kubevirt_vmi_network_receive_errors_total{name="${safeVmName}",namespace="${safeNs}"}[5m]))`
@@ -303,6 +312,7 @@ export default function MetricsDashboardTab({
     lines: Array<{ key: string; name: string; color: string; dash?: string }>;
     yLabel: string;
     yDomain?: [number, number];
+    valueFormatter?: (value: number) => string;
   }> = [
     {
       title: 'CPU Usage',
@@ -333,7 +343,8 @@ export default function MetricsDashboardTab({
         { key: 'rx', name: 'Receive', color: '#3e8635' },
         { key: 'tx', name: 'Transmit', color: '#2196f3' },
       ],
-      yLabel: 'KB/s',
+      yLabel: 'per second',
+      valueFormatter: formatBytesPerSecond,
     },
     {
       title: 'Storage Throughput',
@@ -344,7 +355,8 @@ export default function MetricsDashboardTab({
         { key: 'read', name: 'Read', color: '#3e8635' },
         { key: 'write', name: 'Write', color: '#f0ab00' },
       ],
-      yLabel: 'KB/s',
+      yLabel: 'per second',
+      valueFormatter: formatBytesPerSecond,
     },
     {
       title: 'Storage IOPS',
@@ -366,7 +378,8 @@ export default function MetricsDashboardTab({
         { key: 'swapIn', name: 'Swap In', color: '#c9190b' },
         { key: 'swapOut', name: 'Swap Out', color: '#f0ab00' },
       ],
-      yLabel: 'KB/s',
+      yLabel: 'per second',
+      valueFormatter: formatBytesPerSecond,
     },
     {
       title: 'Network Packets',
@@ -432,6 +445,7 @@ export default function MetricsDashboardTab({
                     <XAxis dataKey="time" tick={{ fontSize: 11 }} />
                     <YAxis
                       tick={{ fontSize: 11 }}
+                      tickFormatter={chart.valueFormatter}
                       domain={chart.yDomain}
                       label={{
                         value: chart.yLabel,
@@ -440,7 +454,7 @@ export default function MetricsDashboardTab({
                         style: { fontSize: 11 },
                       }}
                     />
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip content={<CustomTooltip valueFormatter={chart.valueFormatter} />} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     {chart.lines.map(line => (
                       <Line

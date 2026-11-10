@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import React, { useState } from 'react';
 import { KubeListResponse, PrometheusQueryResult } from '../../types';
+import { formatBytesPerSecond } from '../../utils/formatBytes';
 import { useMetricsEndpoint } from '../../utils/metricsEndpoint';
 import { sanitizePromQL } from '../../utils/sanitize';
 import MetricsEndpointConfig from '../common/MetricsEndpointConfig';
@@ -536,10 +537,10 @@ export default function VirtualizationOverview() {
                             </Box>
                             <Box sx={{ display: 'flex', gap: 0.5, fontSize: '0.7rem' }}>
                               <Typography variant="caption" color="success.main">
-                                ↓ {(consumer.rxValue / 1024).toFixed(1)} KB/s
+                                ↓ {formatBytesPerSecond(consumer.rxValue)}
                               </Typography>
                               <Typography variant="caption" color="info.main">
-                                ↑ {(consumer.txValue / 1024).toFixed(1)} KB/s
+                                ↑ {formatBytesPerSecond(consumer.txValue)}
                               </Typography>
                             </Box>
                           </Box>
@@ -853,10 +854,10 @@ export default function VirtualizationOverview() {
                             </Box>
                             <Box sx={{ display: 'flex', gap: 0.5, fontSize: '0.7rem' }}>
                               <Typography variant="caption" color="success.main">
-                                ↓ {(consumer.inValue / 1024).toFixed(1)} KB/s
+                                ↓ {formatBytesPerSecond(consumer.inValue)}
                               </Typography>
                               <Typography variant="caption" color="error.main">
-                                ↑ {(consumer.outValue / 1024).toFixed(1)} KB/s
+                                ↑ {formatBytesPerSecond(consumer.outValue)}
                               </Typography>
                             </Box>
                           </Box>
@@ -928,10 +929,10 @@ export default function VirtualizationOverview() {
                             </Box>
                             <Box sx={{ display: 'flex', gap: 0.5, fontSize: '0.7rem' }}>
                               <Typography variant="caption" color="success.main">
-                                R: {(consumer.readValue / 1024).toFixed(1)} KB/s
+                                R: {formatBytesPerSecond(consumer.readValue)}
                               </Typography>
                               <Typography variant="caption" color="warning.main">
-                                W: {(consumer.writeValue / 1024).toFixed(1)} KB/s
+                                W: {formatBytesPerSecond(consumer.writeValue)}
                               </Typography>
                             </Box>
                           </Box>

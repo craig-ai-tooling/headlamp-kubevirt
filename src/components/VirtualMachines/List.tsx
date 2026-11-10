@@ -7,7 +7,7 @@ import {
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { DateLabel } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Box, Chip, Divider, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
+import { Box, Button, Chip, Divider, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import useFeatureGate from '../../hooks/useFeatureGate';
@@ -20,6 +20,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import CreateButtonWithMode from '../common/CreateButtonWithMode';
 import CreateResourceDialog from '../common/CreateResourceDialog';
 import { SimpleStyledTooltip, TitledTooltip } from '../common/StyledTooltip';
+import QuickCreateVM from '../QuickCreate/QuickCreateVM';
 import ResourceEditorDialog from '../ResourceEditorDialog';
 import VirtualMachineInstance from '../VirtualMachineInstance/VirtualMachineInstance';
 import CreateSnapshotDialog from '../VirtualMachineSnapshot/CreateSnapshotDialog';
@@ -278,6 +279,7 @@ export default function VirtualMachineList() {
   const { enqueueSnackbar } = useSnackbar();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createInitialTab, setCreateInitialTab] = useState(0);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [customLabelColumns, setCustomLabelColumns] = useState<LabelColumn[]>([]);
   const [doctorVM, setDoctorVM] = useState<VirtualMachine | null>(null);
   const [doctorVMI, setDoctorVMI] = useState<Record<string, unknown> | null>(null);
@@ -710,6 +712,13 @@ export default function VirtualMachineList() {
           <SectionFilterHeader
             title="Virtual Machines"
             titleSideActions={[
+              <Button
+                key="quick-create"
+                variant="contained"
+                onClick={() => setQuickCreateOpen(true)}
+              >
+                New VM
+              </Button>,
               <CreateButtonWithMode
                 key="create"
                 label="Create VM"
@@ -742,6 +751,15 @@ export default function VirtualMachineList() {
         />
       </SectionBox>
 
+      <QuickCreateVM
+        open={quickCreateOpen}
+        onClose={() => setQuickCreateOpen(false)}
+        onAdvanced={() => {
+          setQuickCreateOpen(false);
+          setCreateInitialTab(0);
+          setCreateDialogOpen(true);
+        }}
+      />
       <CreateResourceDialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
